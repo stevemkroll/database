@@ -1,6 +1,7 @@
 package test
 
 import (
+	"database/sql"
 	"fmt"
 	"testing"
 
@@ -9,7 +10,10 @@ import (
 )
 
 var (
-	testClient *client.Client
+	err          error
+	testClient   *client.Client
+	testDatabase *sql.DB
+	testRows     *sql.Rows
 )
 
 func TestNewClient(t *testing.T) {
@@ -22,11 +26,20 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestClientOpen(t *testing.T) {
+func TestOpen(t *testing.T) {
 	TestNewClient(t)
-	db, err := testClient.Open()
+	testDatabase, err = testClient.Open()
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v", db)
+}
+
+func TestQuery(t *testing.T) {
+	TestNewClient(t)
+	query := "SELECT * FROM accounts"
+	testRows, err = testClient.Query(query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%+v", testRows)
 }

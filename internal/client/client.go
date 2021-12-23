@@ -8,6 +8,7 @@ import (
 
 type ClientProvider interface {
 	Open() (*sql.DB, error)
+	Query(query string) (*sql.Rows, error)
 }
 
 type Client struct {
@@ -23,4 +24,12 @@ type Client struct {
 func (c *Client) Open() (*sql.DB, error) {
 	connStr := c.buildConnStr()
 	return sql.Open("postgres", connStr)
+}
+
+func (c *Client) Query(query string) (*sql.Rows, error) {
+	db, err := c.Open()
+	if err != nil {
+		return nil, err
+	}
+	return db.Query(query)
 }
