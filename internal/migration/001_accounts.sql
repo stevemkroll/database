@@ -8,6 +8,6 @@ INSERT INTO accounts (
     "email",
     "password"
 ) VALUES (
-    "test@test.com",
+    'test@test.com',
     crypt('password', gen_salt('bf'))
 );
