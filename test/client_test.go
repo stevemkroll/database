@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/stevemkroll/database/internal/client"
 	"github.com/stevemkroll/database/pkg/database"
 )
@@ -13,9 +14,16 @@ import (
 var (
 	err          error
 	testClient   *client.Client
-	testDatabase *sql.DB
-	testRows     *sql.Rows
+	testDatabase *sqlx.DB
 )
+
+type testAccount struct {
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+	Email     string    `db:"email"`
+	Password  string    `db:"password"`
+	ID        int64     `db:"id"`
+}
 
 func TestNewClient(t *testing.T) {
 	testClient = database.NewClient()
@@ -27,47 +35,34 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestOpen(t *testing.T) {
+func TestConnect(t *testing.T) {
 	TestNewClient(t)
-	testDatabase, err = testClient.Open()
+	testDatabase, err = testClient.Connect()
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestQuery(t *testing.T) {
-	TestNewClient(t)
-	query := "SELECT * FROM accounts"
-	testRows, err = testClient.Query(query)
-	if err != nil {
+func TestGet(t *testing.T) {
+	TestConnect(t)
+	q := "SELECT * FROM accounts WHERE email='test@test.com'"
+	var acnt testAccount
+	if err := testClient.Get(&acnt, q); err != nil {
 		t.Fatal(err)
+	}
+	if acnt.Email != "test@test.com" {
+		t.Fatal(sql.ErrNoRows)
 	}
 }
 
-func TestScan(t *testing.T) {
-	TestQuery(t)
-	type Account struct {
-		CreatedAt time.Time
-		UpdatedAt time.Time
-		Email     string
-		Password  string
-		ID        int
+func TestSelect(t *testing.T) {
+	TestConnect(t)
+	q := "SELECT * FROM accounts"
+	var acnts []testAccount
+	if err := testClient.Select(&acnts, q); err != nil {
+		t.Fatal(err)
 	}
-	var Accounts []Account
-	for testRows.Next() {
-		a := new(Account)
-		if err := testRows.Scan(
-			&a.ID,
-			&a.Email,
-			&a.Password,
-			&a.CreatedAt,
-			&a.UpdatedAt,
-		); err != nil {
-			t.Fatal(err)
-		}
-		Accounts = append(Accounts, *a)
-	}
-	if len(Accounts) == 0 {
-		t.Fatal("no accounts found")
+	if len(acnts) < 1 {
+		t.Fatal(sql.ErrNoRows)
 	}
 }

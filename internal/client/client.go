@@ -1,14 +1,14 @@
 package client
 
 import (
-	"database/sql"
-
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 type ClientProvider interface {
-	Open() (*sql.DB, error)
-	Query(query string) (*sql.Rows, error)
+	Connect() (*sqlx.DB, error)
+	Get(dest interface{}, query string) error
+	Select(dest interface{}, query string) error
 }
 
 type Client struct {
@@ -21,15 +21,25 @@ type Client struct {
 	SSLMode  string
 }
 
-func (c *Client) Open() (*sql.DB, error) {
+func (c *Client) Connect() (*sqlx.DB, error) {
 	connStr := c.buildConnStr()
-	return sql.Open("postgres", connStr)
+	return sqlx.Connect("postgres", connStr)
 }
 
-func (c *Client) Query(query string) (*sql.Rows, error) {
-	db, err := c.Open()
+func (c *Client) Get(dest interface{}, query string) error {
+	db, err := c.Connect()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return db.Query(query)
+	defer db.Close()
+	return db.Get(dest, query)
+}
+
+func (c *Client) Select(dest interface{}, query string) error {
+	db, err := c.Connect()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	return db.Select(dest, query)
 }
